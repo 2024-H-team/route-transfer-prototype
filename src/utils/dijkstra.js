@@ -1,24 +1,28 @@
-function dijkstra(graph, startGcd, targetGcd) {
+// dijkstra.js
+function dijkstra(graph, startGcd, targetGcd, lines) {
+	// Define costs
+	const STATION_HOP_COST = 4; // 4 minutes between stations
+	const TRANSFER_COST = 8; // 8 minutes per line transfer
+
 	const distances = {};
 	const previous = {};
 	const visited = new Set();
-	const pq = new Map(); // Priority queue with {node: {cost, transfers, currentLine}}
+
+	// We'll store {cost, currentLine} and minimize cost this time
+	const pq = new Map();
 
 	Object.keys(graph).forEach((node) => {
-		distances[node] = { cost: 0, transfers: Infinity }; // cost = 0 vì bỏ qua độ dài
+		distances[node] = { cost: Infinity };
 		previous[node] = null;
 	});
 
-	distances[startGcd] = { cost: 0, transfers: 0 };
-	pq.set(startGcd, { cost: 0, transfers: 0, currentLine: null });
+	distances[startGcd] = { cost: 0 };
+	pq.set(startGcd, { cost: 0, currentLine: null });
 
 	while (pq.size > 0) {
-		// Thay đổi logic chọn nút có ưu tiên:
-		// Ưu tiên ít transfers trước, nếu bằng nhau mới ưu tiên cost
+		// Choose the node with the smallest cost
 		const [currentNode, currentData] = [...pq.entries()].reduce((min, entry) =>
-			entry[1].transfers < min[1].transfers || (entry[1].transfers === min[1].transfers && entry[1].cost < min[1].cost)
-				? entry
-				: min
+			entry[1].cost < min[1].cost ? entry : min
 		);
 		pq.delete(currentNode);
 
@@ -27,20 +31,19 @@ function dijkstra(graph, startGcd, targetGcd) {
 		visited.add(currentNode);
 
 		graph[currentNode].forEach((neighbor) => {
-			const { to, weight, line } = neighbor;
+			const { to, line } = neighbor;
+
+			// If currentLine is null (start), no transfer cost. Otherwise, check if line changes
 			const isTransfer = currentData.currentLine && currentData.currentLine !== line;
-			const altTransfers = currentData.transfers + (isTransfer ? 1 : 0);
+			const lineChangeCost = isTransfer ? TRANSFER_COST : 0;
 
-			// cost không quan trọng nữa, luôn là 0
-			const altCost = currentData.cost; // hoặc = currentData.cost + weight; nhưng weight = 0 rồi
+			// Each hop between stations costs STATION_HOP_COST
+			const altCost = currentData.cost + STATION_HOP_COST + lineChangeCost;
 
-			if (
-				altTransfers < distances[to].transfers ||
-				(altTransfers === distances[to].transfers && altCost < distances[to].cost)
-			) {
-				distances[to] = { cost: altCost, transfers: altTransfers };
+			if (altCost < distances[to].cost) {
+				distances[to].cost = altCost;
 				previous[to] = { node: currentNode, line };
-				pq.set(to, { cost: altCost, transfers: altTransfers, currentLine: line });
+				pq.set(to, { cost: altCost, currentLine: line });
 			}
 		});
 	}
@@ -54,8 +57,7 @@ function dijkstra(graph, startGcd, targetGcd) {
 
 	return {
 		path,
-		totalDistance: distances[targetGcd].cost !== Infinity ? distances[targetGcd].cost : null,
-		transfers: distances[targetGcd].transfers,
+		totalCost: distances[targetGcd].cost !== Infinity ? distances[targetGcd].cost : null,
 		previous,
 	};
 }

@@ -3,13 +3,15 @@ const buildGraph = require("../utils/buildGraph");
 const dijkstra = require("../utils/dijkstra");
 
 async function findShortestRoute(startGcd, endGcd) {
+	// Fetch data
 	const [stations] = await pool.query("SELECT station_cd, station_g_cd, station_name FROM railway_stations");
 	const [connections] = await pool.query("SELECT station_cd1, station_cd2, line_cd FROM railway_line_connections");
 	const [lines] = await pool.query("SELECT line_cd, line_name FROM railway_lines");
 
 	const graphData = buildGraph(connections, stations);
 
-	const { path, totalDistance, transfers, previous } = dijkstra(graphData.graph, startGcd, endGcd);
+	// Run Dijkstra with the new cost-based approach
+	const { path, totalCost, previous } = dijkstra(graphData.graph, startGcd, endGcd, lines);
 
 	const groupedStations = graphData.groupedStations;
 
@@ -22,12 +24,11 @@ async function findShortestRoute(startGcd, endGcd) {
 		const nextGcd = path[i + 1];
 
 		const lineCd = previous[nextGcd]?.line;
-		if (!lineCd) {
-			continue;
-		}
+		if (!lineCd) continue;
 
 		const currentCandidates = groupedStations[currentGcd];
 		const nextCandidates = groupedStations[nextGcd];
+
 		let chosenCurrentCd = null;
 		let chosenNextCd = null;
 
@@ -73,7 +74,7 @@ async function findShortestRoute(startGcd, endGcd) {
 	return {
 		start: startGcd,
 		end: endGcd,
-		totalDistance,
+		totalCost, // Now represents total travel time cost including transfers
 		route,
 		transfers: detailedTransfers,
 	};

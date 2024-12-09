@@ -21,7 +21,7 @@ app.get("/", (req, res) => {
 });
 
 // Import routes
-const railwayRoutes = require("./src/routes/railwayRoutes");
+const railwayRoutes = require("./routes/railwayRoutes");
 app.use("/railways", railwayRoutes);
 
 // Start the server

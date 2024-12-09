@@ -26,7 +26,7 @@ function buildGraph(connections, stations) {
 		}
 	});
 
-	return graph;
+	return { graph, groupedStations };
 }
 
 module.exports = buildGraph;

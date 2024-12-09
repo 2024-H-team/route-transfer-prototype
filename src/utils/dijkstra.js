@@ -2,17 +2,21 @@ function dijkstra(graph, startGcd, targetGcd) {
 	const distances = {};
 	const previous = {};
 	const visited = new Set();
-	const pq = new Map();
+	const pq = new Map(); // Priority queue with {node: {cost, transfers, currentLine}}
 
 	Object.keys(graph).forEach((node) => {
-		distances[node] = Infinity;
+		distances[node] = { cost: Infinity, transfers: Infinity };
 		previous[node] = null;
 	});
-	distances[startGcd] = 0;
-	pq.set(startGcd, 0);
+	distances[startGcd] = { cost: 0, transfers: 0 };
+	pq.set(startGcd, { cost: 0, transfers: 0, currentLine: null });
 
 	while (pq.size > 0) {
-		const [currentNode] = [...pq.entries()].reduce((min, entry) => (entry[1] < min[1] ? entry : min));
+		const [currentNode, currentData] = [...pq.entries()].reduce((min, entry) =>
+			entry[1].cost < min[1].cost || (entry[1].cost === min[1].cost && entry[1].transfers < min[1].transfers)
+				? entry
+				: min
+		);
 		pq.delete(currentNode);
 
 		if (currentNode === targetGcd) break;
@@ -21,12 +25,15 @@ function dijkstra(graph, startGcd, targetGcd) {
 
 		graph[currentNode].forEach((neighbor) => {
 			const { to, weight, line } = neighbor;
-			const alt = distances[currentNode] + weight;
+			const isTransfer = currentData.currentLine && currentData.currentLine !== line;
+			const additionalCost = isTransfer ? 2 : 0; // Thêm chi phí khi chuyển line
+			const altCost = currentData.cost + weight + additionalCost;
+			const altTransfers = currentData.transfers + (isTransfer ? 1 : 0);
 
-			if (alt < distances[to]) {
-				distances[to] = alt;
+			if (altCost < distances[to].cost || (altCost === distances[to].cost && altTransfers < distances[to].transfers)) {
+				distances[to] = { cost: altCost, transfers: altTransfers };
 				previous[to] = { node: currentNode, line };
-				pq.set(to, alt);
+				pq.set(to, { cost: altCost, transfers: altTransfers, currentLine: line });
 			}
 		});
 	}
@@ -40,8 +47,9 @@ function dijkstra(graph, startGcd, targetGcd) {
 
 	return {
 		path,
-		totalDistance: distances[targetGcd] !== Infinity ? distances[targetGcd] : null,
-		transfers: path.map((station) => previous[station]).filter((prev) => prev),
+		totalDistance: distances[targetGcd].cost !== Infinity ? distances[targetGcd].cost : null,
+		transfers: distances[targetGcd].transfers,
+		previous,
 	};
 }
 

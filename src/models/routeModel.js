@@ -2,81 +2,92 @@ const pool = require("../config/database");
 const buildGraph = require("../utils/buildGraph");
 const dijkstra = require("../utils/dijkstra");
 
-async function findShortestRoute(startStation, endStation) {
-	// Fetch data from the database
+async function findShortestRoute(startGcd, endGcd) {
+	// Lấy dữ liệu
 	const [stations] = await pool.query("SELECT station_cd, station_g_cd, station_name FROM railway_stations");
-	const [connections] = await pool.query(`SELECT station_cd1, station_cd2, line_cd FROM railway_line_connections`);
+	const [connections] = await pool.query("SELECT station_cd1, station_cd2, line_cd FROM railway_line_connections");
 	const [lines] = await pool.query("SELECT line_cd, line_name FROM railway_lines");
 
-	// Build the graph
-	const graph = buildGraph(connections, stations);
+	// Xây dựng đồ thị dựa trên station_g_cd
+	const graphData = buildGraph(connections, stations);
 
-	// Run Dijkstra's algorithm
-	const { path, totalDistance, transfers } = dijkstra(graph, startStation, endStation);
+	// Chạy Dijkstra trên station_g_cd
+	const { path, totalDistance, transfers, previous } = dijkstra(graphData.graph, startGcd, endGcd);
 
-	// Build the response
+	// Lấy map groupedStations để tiện truy xuất
+	const groupedStations = graphData.groupedStations;
+
 	const route = [];
+	const detailedTransfers = [];
+
+	let previousLine = null;
 	for (let i = 0; i < path.length - 1; i++) {
-		const currentStation = path[i];
-		const nextStation = path[i + 1];
-		const connection = connections.find(
-			(conn) =>
-				(conn.station_cd1 === currentStation && conn.station_cd2 === nextStation) ||
-				(conn.station_cd1 === nextStation && conn.station_cd2 === currentStation)
-		);
+		const currentGcd = path[i];
+		const nextGcd = path[i + 1];
 
-		if (connection) {
-			const line = lines.find((l) => l.line_cd === connection.line_cd);
-			const fromStation = stations.find((s) => s.station_cd === currentStation);
-			const toStation = stations.find((s) => s.station_cd === nextStation);
+		// Tìm line dùng để đến nextGcd
+		const lineCd = previous[nextGcd]?.line;
+		if (!lineCd) {
+			// Ở node bắt đầu có thể chưa có previous line, trường hợp này có thể bỏ qua hoặc tìm line bằng cách khác.
+			// Tuy nhiên, thông thường previous[nextGcd].line sẽ có giá trị từ node thứ hai trở đi.
+			continue;
+		}
 
-			// Add current route segment
-			route.push({
-				from: currentStation,
-				from_name: fromStation ? fromStation.station_name : null,
-				to: nextStation,
-				to_name: toStation ? toStation.station_name : null,
-				line: line ? line.line_name : null,
-			});
+		const currentCandidates = groupedStations[currentGcd]; // Mảng station_cd thuộc gcd hiện tại
+		const nextCandidates = groupedStations[nextGcd]; // Mảng station_cd thuộc gcd kế tiếp
 
-			// Check for transfer at intermediate station
-			if (i > 0) {
-				const prevConnection = connections.find(
+		let chosenCurrentCd = null;
+		let chosenNextCd = null;
+
+		// Tìm cặp station_cd thoả mãn lineCd và kết nối giữa currentGcd và nextGcd
+		outerLoop: for (const ccd of currentCandidates) {
+			for (const ncd of nextCandidates) {
+				const conn = connections.find(
 					(conn) =>
-						(conn.station_cd1 === path[i - 1] && conn.station_cd2 === currentStation) ||
-						(conn.station_cd1 === currentStation && conn.station_cd2 === path[i - 1])
+						((conn.station_cd1 === ccd && conn.station_cd2 === ncd) ||
+							(conn.station_cd1 === ncd && conn.station_cd2 === ccd)) &&
+						conn.line_cd === lineCd
 				);
-				const prevLine = lines.find((l) => l.line_cd === prevConnection?.line_cd);
-
-				if (prevLine?.line_cd !== line?.line_cd) {
-					// Transfer station
-					const transferStation = fromStation || toStation;
-					route.push({
-						transfer_at: transferStation?.station_name,
-						from_line: prevLine?.line_name,
-						to_line: line?.line_name,
-					});
+				if (conn) {
+					chosenCurrentCd = ccd;
+					chosenNextCd = ncd;
+					break outerLoop;
 				}
 			}
 		}
+
+		// Lấy thông tin ga và line
+		const fromStation = stations.find((s) => s.station_cd === chosenCurrentCd);
+		const toStation = stations.find((s) => s.station_cd === chosenNextCd);
+		const lineObj = lines.find((l) => l.line_cd === lineCd);
+
+		// Thêm segment vào route
+		route.push({
+			from: chosenCurrentCd,
+			from_name: fromStation ? fromStation.station_name : null,
+			to: chosenNextCd,
+			to_name: toStation ? toStation.station_name : null,
+			line: lineObj ? lineObj.line_name : null,
+		});
+
+		// Kiểm tra chuyển tuyến
+		if (previousLine && previousLine !== lineCd) {
+			const transferStation = fromStation || toStation;
+			detailedTransfers.push({
+				station_name: transferStation?.station_name,
+				from_line: lines.find((l) => l.line_cd === previousLine)?.line_name,
+				to_line: lineObj?.line_name,
+			});
+		}
+		previousLine = lineCd;
 	}
 
-	// Simplify transfers
-	const simplifiedTransfers = transfers.map((transfer) => {
-		const station = stations.find((s) => s.station_cd === transfer.node);
-		return {
-			station_name: station ? station.station_name : null,
-			from_line: lines.find((l) => l.line_cd === transfer.line)?.line_name,
-			to_line: transfer.transferLine ? lines.find((l) => l.line_cd === transfer.transferLine)?.line_name : null,
-		};
-	});
-
 	return {
-		start: startStation,
-		end: endStation,
+		start: startGcd,
+		end: endGcd,
 		totalDistance,
 		route,
-		transfers: simplifiedTransfers,
+		transfers: detailedTransfers,
 	};
 }
 

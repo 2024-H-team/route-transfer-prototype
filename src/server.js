@@ -22,8 +22,9 @@ app.get("/", (req, res) => {
 
 // Import routes
 const railwayRoutes = require("./routes/railwayRoutes");
+const routeRoutes = require("./routes/route");
 app.use("/railways", railwayRoutes);
-
+app.use("/api", routeRoutes);
 // Start the server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

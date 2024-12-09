@@ -5,15 +5,18 @@ function dijkstra(graph, startGcd, targetGcd) {
 	const pq = new Map(); // Priority queue with {node: {cost, transfers, currentLine}}
 
 	Object.keys(graph).forEach((node) => {
-		distances[node] = { cost: Infinity, transfers: Infinity };
+		distances[node] = { cost: 0, transfers: Infinity }; // cost = 0 vì bỏ qua độ dài
 		previous[node] = null;
 	});
+
 	distances[startGcd] = { cost: 0, transfers: 0 };
 	pq.set(startGcd, { cost: 0, transfers: 0, currentLine: null });
 
 	while (pq.size > 0) {
+		// Thay đổi logic chọn nút có ưu tiên:
+		// Ưu tiên ít transfers trước, nếu bằng nhau mới ưu tiên cost
 		const [currentNode, currentData] = [...pq.entries()].reduce((min, entry) =>
-			entry[1].cost < min[1].cost || (entry[1].cost === min[1].cost && entry[1].transfers < min[1].transfers)
+			entry[1].transfers < min[1].transfers || (entry[1].transfers === min[1].transfers && entry[1].cost < min[1].cost)
 				? entry
 				: min
 		);
@@ -26,11 +29,15 @@ function dijkstra(graph, startGcd, targetGcd) {
 		graph[currentNode].forEach((neighbor) => {
 			const { to, weight, line } = neighbor;
 			const isTransfer = currentData.currentLine && currentData.currentLine !== line;
-			const additionalCost = isTransfer ? 2 : 0; // Thêm chi phí khi chuyển line
-			const altCost = currentData.cost + weight + additionalCost;
 			const altTransfers = currentData.transfers + (isTransfer ? 1 : 0);
 
-			if (altCost < distances[to].cost || (altCost === distances[to].cost && altTransfers < distances[to].transfers)) {
+			// cost không quan trọng nữa, luôn là 0
+			const altCost = currentData.cost; // hoặc = currentData.cost + weight; nhưng weight = 0 rồi
+
+			if (
+				altTransfers < distances[to].transfers ||
+				(altTransfers === distances[to].transfers && altCost < distances[to].cost)
+			) {
 				distances[to] = { cost: altCost, transfers: altTransfers };
 				previous[to] = { node: currentNode, line };
 				pq.set(to, { cost: altCost, transfers: altTransfers, currentLine: line });

@@ -15,14 +15,14 @@ function buildGraph(connections, stations) {
 		graph[stationGcd] = [];
 	});
 
-	// Add connections to the graph using station_g_cd
+	// Add connections to the graph using station_g_cd, set weight = 0
 	connections.forEach((conn) => {
 		const stationGcd1 = stations.find((s) => s.station_cd === conn.station_cd1)?.station_g_cd;
 		const stationGcd2 = stations.find((s) => s.station_cd === conn.station_cd2)?.station_g_cd;
 
 		if (stationGcd1 && stationGcd2 && stationGcd1 !== stationGcd2) {
-			graph[stationGcd1].push({ to: stationGcd2, weight: 1, line: conn.line_cd });
-			graph[stationGcd2].push({ to: stationGcd1, weight: 1, line: conn.line_cd });
+			graph[stationGcd1].push({ to: stationGcd2, weight: 0, line: conn.line_cd });
+			graph[stationGcd2].push({ to: stationGcd1, weight: 0, line: conn.line_cd });
 		}
 	});
 

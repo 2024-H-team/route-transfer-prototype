@@ -39,34 +39,40 @@ function displayError(message) {
 }
 
 function displayRoute(data) {
-	console.log(data);
 	const resultDiv = document.getElementById("result");
-	let html = "<h2>Route Details</h2>";
+	let html = "<h2>乗り換え情報</h2>";
+	const { route, transfers } = data;
 
-	// Display route
-	data.route.forEach((station) => {
-		const isTransfer = data.transfers.some((t) => t.station_name === station.from_name);
-		html += `
-            <div class="route-item">
-                <span class="${isTransfer ? "transfer-station" : ""}">${station.from_name}</span>
-                → ${station.to_name} 
-                <span class="line-name">(${station.line})</span>
-            </div>
-        `;
+	let currentLine = null;
+
+	route.forEach((segment, index) => {
+		// For first station, show name first
+		if (index === 0) {
+			html += `<div class="route-item">${segment.from_name}</div>`;
+			html += `<div class="route-line">(${segment.line})</div>`;
+			currentLine = segment.line;
+			html += `<div class="route-arrow">↓</div>`;
+			html += `<div class="route-item">${segment.to_name}</div>`;
+		} else {
+			// Show new line name when it changes
+			if (segment.line !== currentLine) {
+				// First show transfer information
+				const transfer = transfers.find((t) => t.from_line === currentLine && t.to_line === segment.line);
+				if (transfer) {
+					html += `<div class="route-item transfer">
+                        <strong>${transfer.to_line}に乗り換え</strong>
+                    </div>`;
+					html += `<div class="route-item">${segment.from_name}</div>`;
+					html += `<div class="route-line">(${segment.line})</div>`;
+				}
+				currentLine = segment.line;
+			}
+
+			// Show arrow and next station
+			html += `<div class="route-arrow">↓</div>`;
+			html += `<div class="route-item">${segment.to_name}</div>`;
+		}
 	});
-
-	// Display transfers
-	if (data.transfers.length > 0) {
-		html += '<div class="transfers"><h3>Transfers:</h3>';
-		data.transfers.forEach((transfer) => {
-			html += `
-                <div>At <span class="transfer-station">${transfer.station_name}</span>: 
-                <span class="line-name">${transfer.from_line}</span> → 
-                <span class="line-name">${transfer.to_line}</span></div>
-            `;
-		});
-		html += "</div>";
-	}
 
 	resultDiv.innerHTML = html;
 }

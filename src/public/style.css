@@ -14,17 +14,23 @@ input {
 	padding: 5px;
 }
 
-.transfer-station {
-	font-weight: bold;
-	color: #ff4400;
+.route-line {
+	font-style: italic;
+	margin-bottom: 5px;
+	color: #555;
 }
 
 .route-item {
 	padding: 5px 0;
+	font-size: 1.1em;
 }
 
-.transfers {
-	margin-top: 20px;
-	padding: 10px;
-	background: #f0f0f0;
+.route-item.transfer {
+	font-weight: bold;
+	color: #ff4400;
+}
+
+.route-arrow {
+	font-size: 1.2em;
+	color: #555;
 }

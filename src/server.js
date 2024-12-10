@@ -3,6 +3,7 @@ const bodyParser = require("body-parser");
 const morgan = require("morgan");
 const dotenv = require("dotenv");
 const cors = require("cors");
+const path = require("path");
 
 // Load environment variables
 dotenv.config();
@@ -15,16 +16,20 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(morgan("dev"));
 
-// Set up a basic route
-app.get("/", (req, res) => {
-	res.send("Welcome to your Express MVC app!");
-});
+// Serve static files from 'public' directory
+app.use(express.static(path.join(__dirname, "public")));
 
 // Import routes
 const railwayRoutes = require("./routes/railwayRoutes");
 const routeRoutes = require("./routes/route");
 app.use("/railways", railwayRoutes);
 app.use("/api", routeRoutes);
+
+// Default route serves index.html
+app.get("/", (req, res) => {
+	res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
 // Start the server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

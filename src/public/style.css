@@ -1,0 +1,30 @@
+/* style.css */
+.container {
+	max-width: 800px;
+	margin: 0 auto;
+	padding: 20px;
+}
+
+form {
+	margin-bottom: 20px;
+}
+
+input {
+	margin: 5px;
+	padding: 5px;
+}
+
+.transfer-station {
+	font-weight: bold;
+	color: #ff4400;
+}
+
+.route-item {
+	padding: 5px 0;
+}
+
+.transfers {
+	margin-top: 20px;
+	padding: 10px;
+	background: #f0f0f0;
+}

@@ -39,6 +39,7 @@ function displayError(message) {
 }
 
 function displayRoute(data) {
+	console.log(data);
 	const resultDiv = document.getElementById("result");
 	let html = "<h2>乗り換え情報</h2>";
 	const { route, transfers } = data;

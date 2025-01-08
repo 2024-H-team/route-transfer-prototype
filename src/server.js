@@ -4,6 +4,7 @@ const morgan = require("morgan");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const path = require("path");
+const { buildAndSaveGraph, loadGraphFromFile } = require("./graphBuilder");
 
 // Load environment variables
 dotenv.config();
@@ -29,6 +30,22 @@ app.use("/api", routeRoutes);
 app.get("/", (req, res) => {
 	res.sendFile(path.join(__dirname, "public", "index.html"));
 });
+
+// Load graph before starting the server
+let graphData = null;
+(async () => {
+	try {
+		// Uncomment this line to rebuild the graph when needed
+		// await buildAndSaveGraph();
+
+		// Load graph from file
+		graphData = loadGraphFromFile();
+		console.log("Graph is ready for use.");
+	} catch (error) {
+		console.error("Failed to initialize graph:", error);
+		process.exit(1);
+	}
+})();
 
 // Start the server
 const PORT = process.env.PORT || 3000;

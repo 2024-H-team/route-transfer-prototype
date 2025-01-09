@@ -1,5 +1,5 @@
 // dijkstra.js
-function dijkstra(graph, startGcd, targetGcd, lines) {
+function dijkstra(graph, startGcd, targetGcd) {
 	// Define costs
 	const STATION_HOP_COST = 4; // 4 minutes between stations
 	const TRANSFER_COST = 8; // 8 minutes per line transfer

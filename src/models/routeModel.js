@@ -1,10 +1,12 @@
 const pool = require("../config/database");
-const buildGraph = require("../utils/buildGraph");
 const dijkstra = require("../utils/dijkstra");
+const { getGraph } = require("../utils/graphManager"); // ADDED
 
 async function findStationsByName(name) {
 	const [stations] = await pool.query(
-		"SELECT station_cd, station_g_cd, station_name, lat, lon FROM railway_stations WHERE station_name = ?",
+		"SELECT station_cd, station_g_cd, station_name, lat, lon \
+         FROM railway_stations \
+         WHERE station_name = ?",
 		[name]
 	);
 
@@ -12,7 +14,7 @@ async function findStationsByName(name) {
 		throw new Error(`Station "${name}" not found`);
 	}
 
-	// Nhóm các ga theo station_g_cd hoặc lat-lon
+	// Keep the logic to group stations
 	const groupedStations = {};
 	stations.forEach((station) => {
 		if (!groupedStations[station.station_g_cd]) {
@@ -21,9 +23,8 @@ async function findStationsByName(name) {
 		groupedStations[station.station_g_cd].push(station);
 	});
 
-	// Thêm các ga có cùng lat-lon vào nhóm tương ứng
+	// Keep the logic to add stations with the same lat-lon
 	stations.forEach((station) => {
-		const key = `${station.lat},${station.lon}`;
 		stations.forEach((otherStation) => {
 			if (
 				station.station_cd !== otherStation.station_cd &&
@@ -41,34 +42,36 @@ async function findStationsByName(name) {
 }
 
 async function findShortestRoute(startName, endName) {
-	// Lấy các nhóm ga cho điểm bắt đầu và kết thúc
+	// Keep the logic to find station groups
 	const startGroups = await findStationsByName(startName);
 	const endGroups = await findStationsByName(endName);
 
-	// Lấy tất cả các ga (station_g_cd) trong nhóm bắt đầu và kết thúc
 	const startGcds = Object.keys(startGroups);
 	const endGcds = Object.keys(endGroups);
 
+	// Keep the logic to query stations, connections, lines
 	const [stations] = await pool.query("SELECT station_cd, station_g_cd, station_name, lat, lon FROM railway_stations");
 	const [connections] = await pool.query("SELECT station_cd1, station_cd2, line_cd FROM railway_line_connections");
 	const [lines] = await pool.query("SELECT line_cd, line_name FROM railway_lines");
 
-	const graphData = buildGraph(connections, stations);
+	// INSTEAD OF: buildGraph(connections, stations)
+	// ---> GET THE GRAPH FROM MEMORY:
+	const graphData = getGraph();
+	// graphData = { graph, groupedStations }
 
-	// Lưu trữ kết quả đường đi ngắn nhất
+	// Store the shortest route result
 	let bestRoute = null;
 	let minCost = Infinity;
 
-	// Duyệt qua tất cả các tổ hợp ga bắt đầu và kết thúc
+	// Iterate through all station group combinations
 	for (const startGcd of startGcds) {
 		for (const endGcd of endGcds) {
-			// Tính đường đi
-			const { path, totalCost, previous } = dijkstra(graphData.graph, startGcd, endGcd, lines);
+			// Use the existing graph with Dijkstra
+			const { path, totalCost, previous } = dijkstra(graphData.graph, startGcd, endGcd);
 
 			if (totalCost !== null && totalCost < minCost) {
 				minCost = totalCost;
 
-				// Tạo thông tin tuyến đường
 				const route = [];
 				const detailedTransfers = [];
 				let previousLine = null;

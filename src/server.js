@@ -1,10 +1,12 @@
+// app.js
 const express = require("express");
 const bodyParser = require("body-parser");
 const morgan = require("morgan");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const path = require("path");
-const { loadGraphFromFile } = require("./utils/graphBuilder");
+
+const { initGraph } = require("./utils/graphManager");
 
 // Load environment variables
 dotenv.config();
@@ -31,20 +33,18 @@ app.get("/", (req, res) => {
 	res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// Load graph before starting the server
-let graphData = null;
 (async () => {
 	try {
-		graphData = loadGraphFromFile();
+		await initGraph();
 		console.log("Graph is ready for use.");
+
+		// Start the server
+		const PORT = process.env.PORT || 3000;
+		app.listen(PORT, () => {
+			console.log(`Server is running on http://localhost:${PORT}`);
+		});
 	} catch (error) {
 		console.error("Failed to initialize graph:", error);
 		process.exit(1);
 	}
 })();
-
-// Start the server
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-	console.log(`Server is running on http://localhost:${PORT}`);
-});

@@ -7,16 +7,13 @@ const GRAPH_FILE_PATH = path.join(__dirname, "data", "graph.json");
 
 async function buildAndSaveGraph() {
 	try {
-		// Query dữ liệu từ database
 		const [stations] = await pool.query(
 			"SELECT station_cd, station_g_cd, station_name, lat, lon FROM railway_stations"
 		);
 		const [connections] = await pool.query("SELECT station_cd1, station_cd2, line_cd FROM railway_line_connections");
 
-		// Build đồ thị
 		const graphData = buildGraph(connections, stations);
 
-		// Lưu đồ thị vào file JSON
 		fs.writeFileSync(GRAPH_FILE_PATH, JSON.stringify(graphData, null, 2));
 		console.log("Graph has been built and saved successfully.");
 	} catch (error) {

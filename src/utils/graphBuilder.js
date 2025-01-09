@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
-const pool = require("./config/database");
-const buildGraph = require("./utils/buildGraph");
+const pool = require("../config/database");
+const buildGraph = require("./buildGraph");
 
 const GRAPH_FILE_PATH = path.join(__dirname, "data", "graph.json");
 

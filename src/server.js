@@ -4,7 +4,7 @@ const morgan = require("morgan");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const path = require("path");
-const { buildAndSaveGraph, loadGraphFromFile } = require("./graphBuilder");
+const { loadGraphFromFile } = require("./utils/graphBuilder");
 
 // Load environment variables
 dotenv.config();
@@ -35,10 +35,6 @@ app.get("/", (req, res) => {
 let graphData = null;
 (async () => {
 	try {
-		// Uncomment this line to rebuild the graph when needed
-		// await buildAndSaveGraph();
-
-		// Load graph from file
 		graphData = loadGraphFromFile();
 		console.log("Graph is ready for use.");
 	} catch (error) {
